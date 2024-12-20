@@ -82,7 +82,18 @@ def read_preferences(path, group_names):
     preferences = np.zeros((num_persons, num_groups))
 
     # Gewichtungen für Wünsche und No-Go
-    wish_weights = {"W1": 30, "W2": 10, "W3": 3}
+    wish_weights = {
+        "W1": 90,
+        "W2": 30,
+        "W3": 10,
+        "W4": 5,
+        "W5": 4,
+        "W6": 3,
+        "W7": 2,
+        "W8": 1,
+        "W9": 1,
+        "W10": 1,
+    }
     no_go_categories = ["N1", "N2", "N3"]
     no_go_weight = -10
 
@@ -113,7 +124,7 @@ def read_preferences(path, group_names):
                         f"[WARN] Person {data['Name'].iloc[p]} hat ungültige No-Go-Gruppe: {group_name}"
                     )
 
-    return data["Name"], preferences
+    return data["Name"], preferences, data
 
 
 def solve_ilp_with_ortools(
@@ -437,7 +448,7 @@ def main():
     print(f"  Kapazitäten = {group_capacities}")
 
     print("[INFO] Lese Präferenzen...")
-    persons, preferences = read_preferences(args.prefs, group_names)
+    persons, preferences, pref_data = read_preferences(args.prefs, group_names)
     print(f"  Anzahl Personen: {len(persons)}")
 
     # 2) Kombinierte Lösung aus ILP und lokaler Suche
@@ -491,6 +502,36 @@ def main():
     # Speichere auch als XLSX
     df_result.to_excel("ergebnis.xlsx", index=False)
     print("[INFO] Die Ergebnisse wurden in 'ergebnis.xlsx' gespeichert.")
+    # Anzahl Personen
+    n = len(persons)
+    count_per_wish = {k: 0 for k in range(1, 11)}  # Für W1..W10
+    count_none = 0
+
+    for i in range(n):
+        assigned_idx = best_assignment[i]
+        assigned_group_name = group_names[assigned_idx]
+
+        # Schauen, ob und welcher Wunsch erfüllt ist
+        found_wish = False
+        for w_idx in range(1, 11):  # 1..10
+            col_name = f"W{w_idx}"
+            if col_name in pref_data.columns:
+                w_val = pref_data[col_name].iloc[i]
+                if pd.notna(w_val) and w_val == assigned_group_name:
+                    count_per_wish[w_idx] += 1
+                    found_wish = True
+                    break
+
+        if not found_wish:
+            count_none += 1
+
+    # Nun kannst du schön ausgeben:
+    print("\n==== Wunscherfüllung (W1..W10) ====")
+    for w_idx in range(1, 11):
+        if f"W{w_idx}" in pref_data.columns:
+            print(f"  - Wunsch {w_idx} erfüllt: {count_per_wish[w_idx]} Personen ({round((count_per_wish[w_idx] / n) * 100, 2)} %)")
+    print(f"  - Keinen der Wünsche bekommen: {count_none} Personen ({round((count_none / n) * 100, 2)} %)")
+
 
 if __name__ == "__main__":
     main()

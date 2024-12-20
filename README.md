@@ -22,16 +22,17 @@ Dieses Python-Projekt ermöglicht es, Personen anhand ihrer Gruppenpräferenzen 
 
 ## Funktionsumfang
 - **Einlesen von Gruppenkapazitäten** aus einer Excel-Datei (`capacities.xlsx`)
-- **Einlesen von Präferenzen** aus einer zweiten Excel-Datei (`preferences.xlsx`), die Wünsche (W1, W2, W3) und No-Go-Gruppen (N1, N2, N3) für jede Person enthält
-- **ILP-Lösung** mit Zeitlimit (default 60 Sekunden), um eine möglichst gute Zuweisung zu finden
-- **Lokale Suche** für eine zusätzliche Optimierung durch zufällige Personentausche innerhalb eines selbst festlegbaren Zeitfensters (default 30 Sekunden)
-- **Ausgabe des Gesamtscores** und Auflistung der finalen Zuweisung pro Gruppe
+- **Einlesen von Präferenzen** aus einer zweiten Excel-Datei (`preferences.xlsx`), die Wünsche (W1 bis W10) und No-Go-Gruppen (N1, N2, N3) für jede Person enthalten kann
+- **ILP-Lösung** mit Zeitlimit (default 60 Sekunden) zur Berechnung einer möglichst guten Zuweisung
+- **Lokale Suche** (randomisierte Tauschoperationen) für eine zusätzliche Optimierung innerhalb eines selbst festlegbaren Zeitfensters (default 30 Sekunden)
+- **Ausgabe des Scores** und Auflistung der finalen Zuweisung pro Gruppe, sowohl als CSV (`ergebnis.csv`) als auch als Excel-Datei (`ergebnis.xlsx`)
+- **Zusätzliche Analyse** zu erfüllten Wünschen pro Person (W1..W10) und Anzahl an Personen, die keinen ihrer Wünsche bekommen haben
 
 ---
 
 ## Voraussetzungen
 - **Python 3.x**
-- Folgende Python-Pakete müssen installiert sein:
+- Folgende Python-Pakete werden benötigt:
   - `pandas`
   - `numpy`
   - `openpyxl` (für das Auslesen von Excel-Dateien, in manchen pandas-Versionen bereits enthalten)
@@ -66,10 +67,10 @@ Beispielsweise könnte die Datei so aussehen:
 ### 2) preferences.xlsx
 Erwartetes Format:
 - **Spalte "Name":** Name jeder Person
-- **Spalten "W1", "W2", "W3":** Wunsch-Gruppen in absteigender Priorität (W1 > W2 > W3)
-- **Spalten "N1", "N2", "N3":** No-Go-Gruppen (Gruppen, in die die Person ungern möchte)
+- **Spalten "W1", "W2", ..., "W10":** Wunsch-Gruppen in absteigender Priorität (W1 > W2 > … > W10). Werden nur so viele Spalten genutzt, wie man wirklich benötigt.
+- **Spalten "N1", "N2", "N3":** No-Go-Gruppen (max. drei No-Go-Gruppen pro Person).
 
-Beispiel:
+Beispiel (mit nur W1 bis W3 und N1 bis N3):
 
 | Name  | W1       | W2       | W3       | N1       | N2       | N3       |
 |-------|----------|----------|----------|----------|----------|----------|
@@ -78,6 +79,19 @@ Beispiel:
 | Anne  | Gruppe C | Gruppe A | Gruppe B | nan      | nan      | nan      |
 
 Wobei „nan“ bedeutet, dass kein Wert angegeben ist (z.B. wenn es nur einen oder zwei Wünsche/No-Go gibt).
+
+**Gewichtungen (Beispiel, im Code festgelegt):**
+- W1: +90 Punkte
+- W2: +30 Punkte
+- W3: +10 Punkte
+- W4: +5 Punkte
+- W5: +4 Punkte
+- W6: +3 Punkte
+- W7: +2 Punkte
+- W8: +1 Punkt
+- W9: +1 Punkt
+- W10: +1 Punkt
+- No-Go (N1, N2, N3): -10 Punkte
 
 ---
 
@@ -109,17 +123,25 @@ python gruppeneinteilung.py \
     --local_time 60
 ```
 
+Ablauf:
 1. **Einlesen der Gruppenkapazitäten** aus `capacities.xlsx`
-2. **Einlesen der Präferenzen** aus `preferences.xlsx`
+2. **Einlesen der Präferenzen** (W1..W10 und N1..N3) aus `preferences.xlsx`
 3. **Durchführung des ILP-Solvers** (max. 120 Sekunden)
-4. **Lokale Suche** (nochmal 60 Sekunden)
-5. **Ausgabe** des letztendlichen Scores und der Verteilung (Details pro Gruppe)
+4. **Lokale Suche** (nochmal 60 Sekunden, zufällige Tauschoperationen)
+5. **Ausgabe** von:
+   - Insgesamt erzielter Score
+   - Finaler Gruppenaufteilung (pro Gruppe)
+   - Anzahl erfüllter Wünsche pro Kategorie (W1..W10)
+   - Anzahl Personen, die keinen Wunsch bekommen haben
+   - Speicher der Ergebnisse in `ergebnis.csv` und `ergebnis.xlsx`
 
 ---
 
 ## Erweiterungsmöglichkeiten
-- **Mehrfache Prüfungen/Iterationen**: Das ILP kann mehrfach mit verschiedenen Parametern aufgerufen werden.
-- **Weitere Präferenzränge**: Gewichtungen für W1/W2/W3 und N1/N2/N3 können angepasst oder erweitert werden.
+- **Weitere Wunsch-Ränge**: Das Programm ist bereits vorbereitet bis W10. Falls weitere benötigt werden, kann das Mapping in `wish_weights` erweitert bzw. angepasst werden. 
+- **Variation der Gewichte**: Die Gewichtungen für Wunschrang und No-Go sind im Code änderbar.
+- **Mehrfache Zufallsstarts**: Die lokale Suche könnte mehrfach mit unterschiedlichen Startlösungen laufen, um noch bessere Ergebnisse zu erzielen.
+- **Weitere lokale Suchroutinen**: Z.B. Annealing, Tabu Search oder genetische Algorithmen, um eine umfassendere Optimierung durchzuführen.
 - **GUI**: Eine grafische Oberfläche könnte das Einlesen und Ausgeben vereinfachen.
 
 ---
