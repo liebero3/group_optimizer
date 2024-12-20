@@ -1,0 +1,11 @@
+# Ignoriere standardmäßig alle Dateien
+*
+
+# Ausnahme: Die .gitignore-Datei selbst soll nicht ignoriert werden
+!.gitignore
+
+# Ausnahme: Alle Python-Dateien (*.py) dürfen eingecheckt werden
+!*.py
+
+# Ausnahme: Alle Markdown-Dateien (*.md) dürfen eingecheckt werden
+!*.md
